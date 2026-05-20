@@ -1,0 +1,10 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution/">
+    <File Path="CLAUDE.md" />
+  </Folder>
+  <Project Path="Xbtn2PgScroll/Xbtn2PgScroll.vcxproj" Id="e39ac4c1-6a1d-4727-a579-2f8c5286c919" />
+</Solution>
