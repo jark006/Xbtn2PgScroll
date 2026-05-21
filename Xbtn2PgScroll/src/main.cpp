@@ -1,7 +1,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #define WM_TRAYICON (WM_USER + 1)
-#define IDM_EXIT 1001
+#define IDM_GITHUB 1001
+#define IDM_EXIT 1002
 #include <windows.h>
 #include <shellapi.h>
 
@@ -39,6 +40,8 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             POINT pt;
             GetCursorPos(&pt);
             HMENU hMenu = CreatePopupMenu();
+            AppendMenuW(hMenu, MF_STRING, IDM_GITHUB, L"GitHub 项目主页");
+            AppendMenuW(hMenu, MF_SEPARATOR, 0, nullptr);
             AppendMenuW(hMenu, MF_STRING, IDM_EXIT, L"退出");
             SetForegroundWindow(hwnd);
             TrackPopupMenu(hMenu, TPM_RIGHTALIGN | TPM_BOTTOMALIGN,
@@ -48,6 +51,12 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         return 0;
     }
     if (msg == WM_COMMAND) {
+        if (LOWORD(wp) == IDM_GITHUB) {
+            ShellExecuteW(nullptr, L"open",
+                L"https://github.com/jark006/Xbtn2PgScroll",
+                nullptr, nullptr, SW_SHOWNORMAL);
+            return 0;
+        }
         if (LOWORD(wp) == IDM_EXIT) {
             DestroyWindow(hwnd);
             return 0;
