@@ -1,6 +1,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #define WM_TRAYICON (WM_USER + 1)
+#define WM_INJECT_KEY (WM_USER + 2)  // 钩子回调转交消息窗口，避免在钩子内重入 SendInput
 #define IDM_GITHUB 1001
 #define IDM_EXIT 1002
 #include <windows.h>
@@ -10,14 +11,12 @@ static HHOOK g_mouse_hook = nullptr;
 static HWND g_msg_wnd = nullptr;
 static NOTIFYICONDATAW g_nid = {};
 
-static void send_key(WORD vk) {
-    INPUT inputs[2] = {};
-    inputs[0].type = INPUT_KEYBOARD;
-    inputs[0].ki.wVk = vk;
-    inputs[1].type = INPUT_KEYBOARD;
-    inputs[1].ki.wVk = vk;
-    inputs[1].ki.dwFlags = KEYEVENTF_KEYUP;
-    SendInput(2, inputs, sizeof(INPUT));
+static void send_key_event(WORD vk, bool down) {
+    INPUT input{};
+    input.type = INPUT_KEYBOARD;
+    input.ki.wVk = vk;
+    input.ki.dwFlags = down ? 0 : KEYEVENTF_KEYUP;
+    SendInput(1, &input, sizeof(INPUT));
 }
 
 static LRESULT CALLBACK mouse_proc(int nCode, WPARAM wParam, LPARAM lParam) {
@@ -25,9 +24,10 @@ static LRESULT CALLBACK mouse_proc(int nCode, WPARAM wParam, LPARAM lParam) {
         auto* ms = reinterpret_cast<MSLLHOOKSTRUCT*>(lParam);
         const DWORD button = HIWORD(ms->mouseData);
         if (button == XBUTTON1 || button == XBUTTON2) {
-            if (wParam == WM_XBUTTONDOWN) {
-                send_key(button == XBUTTON1 ? VK_NEXT : VK_PRIOR);
-            }
+            const WORD vk = (button == XBUTTON1) ? VK_NEXT : VK_PRIOR;
+            const bool down = (wParam == WM_XBUTTONDOWN);
+            // 不在钩子回调内调用 SendInput，转交消息窗口处理，使回调即时返回
+            PostMessageW(g_msg_wnd, WM_INJECT_KEY, vk, down ? 1 : 0);
             return 1;
         }
     }
@@ -35,6 +35,10 @@ static LRESULT CALLBACK mouse_proc(int nCode, WPARAM wParam, LPARAM lParam) {
 }
 
 static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+    if (msg == WM_INJECT_KEY) {
+        send_key_event(static_cast<WORD>(wp), lp != 0);
+        return 0;
+    }
     if (msg == WM_TRAYICON) {
         if (lp == WM_RBUTTONUP) {
             POINT pt;
