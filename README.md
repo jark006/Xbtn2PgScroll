@@ -11,7 +11,9 @@
 ## 功能
 
 - 全局拦截鼠标侧键（XBUTTON1 / XBUTTON2）
-- XBUTTON1 → PageDown，XBUTTON2 → PageUp
+- XBUTTON1 -> PageDown，XBUTTON2 -> PageUp
+- 按下 / 松开分别映射为 keydown / keyup，二者严格配对，避免按键状态残留
+- 钩子回调仅转发消息、即时返回，不在回调内调用 SendInput，避免输入管线阻塞
 - 拦截原始事件，侧键不会触发浏览器"后退/前进"
 - 系统托盘常驻，右键菜单退出
 - 无窗口、无界面、零依赖
@@ -24,7 +26,7 @@
 
 ## 工作原理
 
-使用 `SetWindowsHookExW` 安装系统级低级鼠标钩子（`WH_MOUSE_LL`），在事件到达任何应用之前拦截 XBUTTON 按下/释放事件，通过 `SendInput` 注入对应的键盘按键，并吞掉原始鼠标事件。
+使用 `SetWindowsHookExW` 安装系统级低级鼠标钩子（`WH_MOUSE_LL`），在事件到达任何应用之前拦截 XBUTTON 按下/释放事件。钩子回调仅通过 `PostMessage` 将待注入的按键转发给自身消息窗口并立即返回（避免在回调内重入 `SendInput` 拖慢输入管线）；消息窗口收到消息后，再通过 `SendInput` 注入对应的 keydown / keyup，并吞掉原始鼠标事件。
 
 ## 许可证
 
